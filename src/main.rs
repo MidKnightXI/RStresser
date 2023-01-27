@@ -6,9 +6,17 @@ use reqwest::Client;
 
 #[tokio::main]
 async fn main() {
-    // Set up the number of threads and requests to use
-    let num_threads = 10;
-    let num_requests = 100000;
+    let num_threads: usize = std::env::args()
+        .nth(2)
+        .unwrap()
+        .parse::<usize>()
+        .expect("Failed to parse number of threads");
+
+    let num_requests: usize = std::env::args()
+        .nth(3)
+        .unwrap()
+        .parse::<usize>()
+        .expect("Failed to parse number of requests");
 
     // Create a channel to receive responses from the threads
     let (tx, mut rx) = mpsc::channel(num_threads * num_requests);
@@ -24,21 +32,20 @@ async fn main() {
         let failure = failure.clone();
 
         task::spawn(async move {
-            // Create a client to handle the requests
+            let url = std::env::args().nth(1).unwrap();
             let client = Client::new();
 
-            // Send the requests
             for _ in 0..num_requests {
-                let response = client.get("http://localhost:8081/")
+                let response = client.get(url.as_str())
                     .send()
                     .await
-                    .expect("Cannot send request");
+                    .unwrap();
 
                 // Send the response status back through the channel
                 tx.send(response.status()
                     .as_u16())
                     .await
-                    .expect("Cannot send response status");
+                    .unwrap();
 
                 // Update the results
                 if response.status().is_success() {
