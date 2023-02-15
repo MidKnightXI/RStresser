@@ -8,7 +8,7 @@ async fn main() {
 
     if std::env::args().nth(3).is_none()
     {
-        eprintln!("Not enough argument specified.");
+        eprintln!("Not enough argument specified");
         return;
     }
 
@@ -16,13 +16,13 @@ async fn main() {
         .nth(2)
         .unwrap()
         .parse::<usize>()
-        .expect("Failed to parse number of threads.");
+        .expect("Failed to parse number of threads");
 
     let num_requests: usize = std::env::args()
         .nth(3)
         .unwrap()
         .parse::<usize>()
-        .expect("Failed to parse number of requests.");
+        .expect("Failed to parse number of requests");
 
     // Create shared variables to store the results
     let success: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
@@ -31,6 +31,7 @@ async fn main() {
     // Spawn the threads
     for _ in 0..num_threads
     {
+        let client: Client = Client::new();
         let success: Arc<Mutex<i32>> = success.clone();
         let failure: Arc<Mutex<i32>> = failure.clone();
 
@@ -38,14 +39,13 @@ async fn main() {
             let url: String = std::env::args()
                 .nth(1)
                 .expect("Failed to parse the URL.");
-            let client: Client = Client::new();
 
             for _ in 0..num_requests
             {
                 let response: Response = client.get(url.as_str())
                     .send()
                     .await
-                    .unwrap();
+                    .expect("Failed to send request");
 
                 // Update the results
                 if response.status().is_success()
@@ -57,7 +57,7 @@ async fn main() {
                     *failure.lock().await += 1;
                 }
             }
-        });
+        }).await.unwrap();
     }
 
     // Print the results
