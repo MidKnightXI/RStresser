@@ -63,4 +63,5 @@ async fn main() {
     // Print the results
     println!("Success: {}", success.lock().await);
     println!("Failure: {}", failure.lock().await);
+    return;
 }
