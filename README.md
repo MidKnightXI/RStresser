@@ -1,4 +1,4 @@
-# stress-test
+# RStresser
 
 ### Usage
 
