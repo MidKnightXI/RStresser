@@ -2,8 +2,8 @@
 
 ### Usage
 
-`cargo run url nb_thread nb_requests`
+`cargo run url nb_requests nb_thread`
 
-- `url` is a string containing the address of the website you want to stress test.
+- `url` url to the website.
+- `nb_requests` is the number of requests.
 - `nb_thread` is the number of threads you want to use.
-- `nb_requests` is the number of requests you want to do on each threads.
