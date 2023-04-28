@@ -65,27 +65,23 @@ async fn main() -> Result<(), Box<dyn Error>>
 
     join_all(handles).await;
 
-    {
-        let median: Duration = {
-            let mut duration = duration.lock().await;
-            duration.sort();
-            duration[duration.len() / 2]
-        };
-        println!("Median: {}ms", median.as_millis());
-    }
+    let median: Duration = {
+        let mut duration = duration.lock().await;
+        duration.sort();
+        duration[duration.len() / 2]
+    };
 
+    let average_time = {
+        let duration = duration.lock().await;
+        let mut total: Duration = Duration::new(0, 0);
+        for time in duration.iter() {
+            total += *time;
+        }
+        total / duration.len() as u32
+    };
 
-    {
-        let average_time = {
-            let duration = duration.lock().await;
-            let mut total: Duration = Duration::new(0, 0);
-            for time in duration.iter() {
-                total += *time;
-            }
-            total / duration.len() as u32
-        };
-        println!("Average: {}ms", average_time.as_millis());
-    }
+    println!("Median: {}ms", median.as_millis());
+    println!("Average: {}ms", average_time.as_millis());
 
     println!("Success: {}", success.lock().await);
     println!("Failure: {}", failure.lock().await);
