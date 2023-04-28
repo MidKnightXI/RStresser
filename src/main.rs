@@ -1,4 +1,4 @@
-use std::{sync::Arc, env::args, error::Error};
+use std::{sync::Arc, env::args, error::Error, time::Duration};
 use tokio::{sync::Mutex, task::{JoinHandle, spawn}};
 use futures::future::join_all;
 use reqwest::{Client, Response, StatusCode};
@@ -32,6 +32,8 @@ async fn main() -> Result<(), Box<dyn Error>>
     let success: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
     let failure: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
 
+    let duration: Arc<Mutex<Vec<Duration>>> = Arc::new(Mutex::new(vec![]));
+
     let mut handles: Vec<JoinHandle<()>> = vec![];
 
     println!("Number of threads: {}", num_threads);
@@ -41,13 +43,16 @@ async fn main() -> Result<(), Box<dyn Error>>
     {
         let success: Arc<Mutex<i32>> = success.clone();
         let failure: Arc<Mutex<i32>> = failure.clone();
+        let duration: Arc<Mutex<Vec<Duration>>> = duration.clone();
 
         handles.push(
             spawn(async move {
                 let url: String = get_arg(1);
                 for _ in 0..num_requests
                 {
+                    let current = std::time::Instant::now();
                     let status: StatusCode = make_request(&url).await.unwrap();
+                    duration.lock().await.push(current.elapsed());
                     if status.is_success() {
                         *success.lock().await += 1;
                     } else {
@@ -59,6 +64,29 @@ async fn main() -> Result<(), Box<dyn Error>>
     }
 
     join_all(handles).await;
+
+    {
+        let median: Duration = {
+            let mut duration = duration.lock().await;
+            duration.sort();
+            duration[duration.len() / 2]
+        };
+        println!("Median: {}ms", median.as_millis());
+    }
+
+
+    {
+        let average_time = {
+            let duration = duration.lock().await;
+            let mut total: Duration = Duration::new(0, 0);
+            for time in duration.iter() {
+                total += *time;
+            }
+            total / duration.len() as u32
+        };
+        println!("Average: {}ms", average_time.as_millis());
+    }
+
     println!("Success: {}", success.lock().await);
     println!("Failure: {}", failure.lock().await);
     Ok(())
